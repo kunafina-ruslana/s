@@ -8,12 +8,12 @@ import exerciseRoutes from './routes/exerciseRoutes.js';
 import workoutRoutes from './routes/workoutRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import contactRoutes from './routes/contactRoutes.js'; 
 
 dotenv.config();
 
 const app = express();
 
-// Middleware
 app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true
@@ -22,20 +22,14 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Маршруты API
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/exercises', exerciseRoutes);
 app.use('/api/workouts', workoutRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/contact', contactRoutes); 
 
-// Тестовый маршрут
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Server is working', timestamp: new Date().toISOString() });
-});
-
-// Обработка 404
 app.use((req, res) => {
   res.status(404).json({ 
     message: 'Маршрут не найден',
@@ -44,7 +38,6 @@ app.use((req, res) => {
   });
 });
 
-// Обработка ошибок
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({ 
@@ -58,17 +51,16 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     await sequelize.authenticate();
-    console.log('✅ PostgreSQL database connected successfully');
+    console.log('Database connected successfully');
     
     await sequelize.sync({ alter: true });
-    console.log('✅ Database synced');
+    console.log('Database synced');
     
     app.listen(PORT, () => {
-      console.log(`✅ Server running on port ${PORT}`);
-      console.log(`📍 Test API: http://localhost:${PORT}/api/test`);
+      console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
-    console.error('❌ Unable to start server:', error);
+    console.error('Unable to start server:', error);
     process.exit(1);
   }
 };
