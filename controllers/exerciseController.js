@@ -2,6 +2,7 @@ import { Exercise } from '../models/index.js';
 import { validationResult } from 'express-validator';
 import { Op } from 'sequelize';
 
+// Вспомогательные функции
 const extractRutubeVideoId = (url) => {
   if (!url) return null;
   
@@ -20,13 +21,15 @@ const extractRutubeVideoId = (url) => {
 };
 
 const buildRutubeEmbedUrl = (videoId, startTime, endTime) => {
+  if (!videoId) return null;
+  
   let url = `https://rutube.ru/play/embed/${videoId}`;
   const params = [];
   
-  if (startTime) {
+  if (startTime && startTime > 0) {
     params.push(`t=${startTime}`);
   }
-  if (endTime) {
+  if (endTime && endTime > 0) {
     params.push(`end=${endTime}`);
   }
   
@@ -37,6 +40,7 @@ const buildRutubeEmbedUrl = (videoId, startTime, endTime) => {
   return url;
 };
 
+// Публичные маршруты
 export const getAllExercises = async (req, res) => {
   try {
     const { muscleGroup, difficulty, category, equipment } = req.query;
@@ -88,6 +92,33 @@ export const getExerciseById = async (req, res) => {
   } catch (error) {
     console.error('Error fetching exercise:', error);
     res.status(500).json({ message: 'Ошибка загрузки упражнения' });
+  }
+};
+
+// Маршруты для тренера
+export const getMyExercises = async (req, res) => {
+  try {
+    const exercises = await Exercise.findAll({
+      where: { createdBy: req.user.id },
+      order: [['createdAt', 'DESC']]
+    });
+    
+    const exercisesWithEmbed = exercises.map(exercise => {
+      const exerciseData = exercise.toJSON();
+      if (exercise.rutubeVideoId) {
+        exerciseData.embedUrl = buildRutubeEmbedUrl(
+          exercise.rutubeVideoId,
+          exercise.rutubeStartTime,
+          exercise.rutubeEndTime
+        );
+      }
+      return exerciseData;
+    });
+    
+    res.json(exercisesWithEmbed);
+  } catch (error) {
+    console.error('Error fetching my exercises:', error);
+    res.status(500).json({ message: 'Ошибка загрузки ваших упражнений' });
   }
 };
 
@@ -204,31 +235,5 @@ export const deleteExercise = async (req, res) => {
   } catch (error) {
     console.error('Error deleting exercise:', error);
     res.status(500).json({ message: 'Ошибка удаления упражнения' });
-  }
-};
-
-export const getMyExercises = async (req, res) => {
-  try {
-    const exercises = await Exercise.findAll({
-      where: { createdBy: req.user.id },
-      order: [['createdAt', 'DESC']]
-    });
-    
-    const exercisesWithEmbed = exercises.map(exercise => {
-      const exerciseData = exercise.toJSON();
-      if (exercise.rutubeVideoId) {
-        exerciseData.embedUrl = buildRutubeEmbedUrl(
-          exercise.rutubeVideoId,
-          exercise.rutubeStartTime,
-          exercise.rutubeEndTime
-        );
-      }
-      return exerciseData;
-    });
-    
-    res.json(exercisesWithEmbed);
-  } catch (error) {
-    console.error('Error fetching my exercises:', error);
-    res.status(500).json({ message: 'Ошибка загрузки ваших упражнений' });
   }
 };
