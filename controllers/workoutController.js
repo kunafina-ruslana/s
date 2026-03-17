@@ -2,6 +2,7 @@ import { Workout, Exercise, WorkoutExercise, WorkoutProgress } from '../models/i
 import { validationResult } from 'express-validator';
 import { Op } from 'sequelize';
 
+// Публичные маршруты
 export const getAllWorkouts = async (req, res) => {
   try {
     const { level, category, search } = req.query;
@@ -23,7 +24,8 @@ export const getAllWorkouts = async (req, res) => {
             attributes: ['sets', 'reps', 'restTime', 'order'] 
           } 
         }
-      ]
+      ],
+      order: [['createdAt', 'DESC']]
     });
     res.json(workouts);
   } catch (error) {
@@ -52,6 +54,41 @@ export const getWorkoutById = async (req, res) => {
   } catch (error) {
     console.error('Error fetching workout:', error);
     res.status(500).json({ message: 'Ошибка загрузки тренировки' });
+  }
+};
+
+// Маршруты для тренера
+export const getMyWorkouts = async (req, res) => {
+  try {
+    console.log('Fetching workouts for user:', req.user.id);
+    
+    const workouts = await Workout.findAll({
+      where: { createdBy: req.user.id },
+      include: [
+        { 
+          model: Exercise, 
+          as: 'exercises',
+          through: { 
+            attributes: ['sets', 'reps', 'restTime', 'order'] 
+          } 
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    
+    console.log(`Found ${workouts.length} workouts`);
+    res.json(workouts);
+  } catch (error) {
+    console.error('Error fetching my workouts:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    res.status(500).json({ 
+      message: 'Ошибка загрузки ваших тренировок',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -229,26 +266,3 @@ export const completeWorkout = async (req, res) => {
     res.status(500).json({ message: 'Ошибка завершения тренировки' });
   }
 };
-
-export const getMyWorkouts = async (req, res) => {
-  try {
-    const workouts = await Workout.findAll({
-      where: { createdBy: req.user.id },
-      include: [
-        { 
-          model: Exercise, 
-          as: 'exercises',
-          through: { 
-            attributes: ['sets', 'reps', 'restTime', 'order'] 
-          } 
-        }
-      ],
-      order: [['createdAt', 'DESC']]
-    });
-    res.json(workouts);
-  } catch (error) {
-    console.error('Error fetching my workouts:', error);
-    res.status(500).json({ message: 'Ошибка загрузки ваших тренировок' });
-  }
-};
-
