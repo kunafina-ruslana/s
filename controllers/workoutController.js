@@ -229,3 +229,25 @@ export const completeWorkout = async (req, res) => {
     res.status(500).json({ message: 'Ошибка завершения тренировки' });
   }
 };
+
+export const getMyWorkouts = async (req, res) => {
+  try {
+    const workouts = await Workout.findAll({
+      where: { createdBy: req.user.id },
+      include: [
+        { 
+          model: Exercise, 
+          as: 'exercises',
+          through: { 
+            attributes: ['sets', 'reps', 'restTime', 'order'] 
+          } 
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    res.json(workouts);
+  } catch (error) {
+    console.error('Error fetching my workouts:', error);
+    res.status(500).json({ message: 'Ошибка загрузки ваших тренировок' });
+  }
+};
