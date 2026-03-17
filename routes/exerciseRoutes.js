@@ -42,5 +42,6 @@ router.get('/:id', getExerciseById);
 router.post('/', authenticate, authorize('trainer', 'admin'), exerciseValidation, createExercise);
 router.put('/:id', authenticate, authorize('trainer', 'admin'), exerciseValidation, updateExercise);
 router.delete('/:id', authenticate, authorize('trainer', 'admin'), deleteExercise);
+router.get('/my', authenticate, authorize('trainer', 'admin'), getMyExercises);
 
 export default router;
