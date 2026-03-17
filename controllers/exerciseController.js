@@ -9,7 +9,8 @@ const extractRutubeVideoId = (url) => {
   const patterns = [
     /rutube\.ru\/video\/([a-f0-9]+)/i,
     /rutube\.ru\/play\/embed\/([a-f0-9]+)/i,
-    /rutube\.ru\/video\/embed\/([a-f0-9]+)/i
+    /rutube\.ru\/video\/embed\/([a-f0-9]+)/i,
+    /rutube\.ru\/([a-f0-9]+)/i
   ];
   
   for (const pattern of patterns) {
@@ -51,7 +52,10 @@ export const getAllExercises = async (req, res) => {
     if (category) where.category = category;
     if (equipment) where.equipment = equipment;
 
-    const exercises = await Exercise.findAll({ where });
+    const exercises = await Exercise.findAll({ 
+      where,
+      order: [['name', 'ASC']]
+    });
     
     const exercisesWithEmbed = exercises.map(exercise => {
       const exerciseData = exercise.toJSON();
@@ -98,10 +102,14 @@ export const getExerciseById = async (req, res) => {
 // Маршруты для тренера
 export const getMyExercises = async (req, res) => {
   try {
+    console.log('Fetching exercises for user:', req.user.id);
+    
     const exercises = await Exercise.findAll({
       where: { createdBy: req.user.id },
       order: [['createdAt', 'DESC']]
     });
+    
+    console.log(`Found ${exercises.length} exercises`);
     
     const exercisesWithEmbed = exercises.map(exercise => {
       const exerciseData = exercise.toJSON();
@@ -118,7 +126,15 @@ export const getMyExercises = async (req, res) => {
     res.json(exercisesWithEmbed);
   } catch (error) {
     console.error('Error fetching my exercises:', error);
-    res.status(500).json({ message: 'Ошибка загрузки ваших упражнений' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    res.status(500).json({ 
+      message: 'Ошибка загрузки ваших упражнений',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
