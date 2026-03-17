@@ -206,3 +206,29 @@ export const deleteExercise = async (req, res) => {
     res.status(500).json({ message: 'Ошибка удаления упражнения' });
   }
 };
+
+export const getMyExercises = async (req, res) => {
+  try {
+    const exercises = await Exercise.findAll({
+      where: { createdBy: req.user.id },
+      order: [['createdAt', 'DESC']]
+    });
+    
+    const exercisesWithEmbed = exercises.map(exercise => {
+      const exerciseData = exercise.toJSON();
+      if (exercise.rutubeVideoId) {
+        exerciseData.embedUrl = buildRutubeEmbedUrl(
+          exercise.rutubeVideoId,
+          exercise.rutubeStartTime,
+          exercise.rutubeEndTime
+        );
+      }
+      return exerciseData;
+    });
+    
+    res.json(exercisesWithEmbed);
+  } catch (error) {
+    console.error('Error fetching my exercises:', error);
+    res.status(500).json({ message: 'Ошибка загрузки ваших упражнений' });
+  }
+};
