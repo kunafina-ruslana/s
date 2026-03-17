@@ -251,3 +251,4 @@ export const getMyWorkouts = async (req, res) => {
     res.status(500).json({ message: 'Ошибка загрузки ваших тренировок' });
   }
 };
+
