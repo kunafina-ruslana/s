@@ -1,6 +1,5 @@
 import { Exercise } from '../models/index.js';
 import { validationResult } from 'express-validator';
-import { Op } from 'sequelize';
 
 // Вспомогательные функции
 const extractRutubeVideoId = (url) => {
@@ -9,8 +8,7 @@ const extractRutubeVideoId = (url) => {
   const patterns = [
     /rutube\.ru\/video\/([a-f0-9]+)/i,
     /rutube\.ru\/play\/embed\/([a-f0-9]+)/i,
-    /rutube\.ru\/video\/embed\/([a-f0-9]+)/i,
-    /rutube\.ru\/([a-f0-9]+)/i
+    /rutube\.ru\/video\/embed\/([a-f0-9]+)/i
   ];
   
   for (const pattern of patterns) {
