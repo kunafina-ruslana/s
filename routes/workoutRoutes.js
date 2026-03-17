@@ -25,5 +25,6 @@ router.put('/:id', authenticate, authorize('trainer', 'admin'), workoutValidatio
 router.delete('/:id', authenticate, authorize('trainer', 'admin'), deleteWorkout);
 router.post('/:id/start', authenticate, startWorkout);
 router.put('/:id/complete', authenticate, completeWorkout);
+router.get('/my', authenticate, authorize('trainer', 'admin'), getMyWorkouts);
 
 export default router;
