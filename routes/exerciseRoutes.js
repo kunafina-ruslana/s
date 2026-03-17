@@ -40,6 +40,7 @@ const exerciseValidation = [
 
 router.get('/', getAllExercises);
 router.get('/:id', getExerciseById);
+
 router.get('/my', authenticate, authorize('trainer', 'admin'), getMyExercises);
 router.post('/', authenticate, authorize('trainer', 'admin'), exerciseValidation, createExercise);
 router.put('/:id', authenticate, authorize('trainer', 'admin'), exerciseValidation, updateExercise);
