@@ -163,23 +163,23 @@ export const updateWorkout = async (req, res) => {
       return res.status(403).json({ message: 'Доступ запрещен' });
     }
 
-    const { exercises, ...workoutData } = req.body;
-    await workout.update(workoutData);
-
-    if (exercises) {
-      await WorkoutExercise.destroy({ where: { workoutId: workout.id } });
-      
-      const workoutExercises = exercises.map((ex, index) => ({
-        workoutId: workout.id,
-        exerciseId: ex.exerciseId,
-        sets: ex.sets || 3,
-        reps: ex.reps || 10,
-        restTime: ex.restTime || 30,
-        order: index
-      }));
-      await WorkoutExercise.bulkCreate(workoutExercises);
+    const { name, description, duration, level, category, imageUrl } = req.body;
+    
+    if (!name || !description || !duration) {
+      return res.status(400).json({ message: 'Обязательные поля не заполнены' });
     }
 
+    const updateData = {
+      name: name.trim(),
+      description: description.trim(),
+      duration: parseInt(duration),
+      level: level || 'beginner',
+      category: category ? category.trim() : null,
+      imageUrl: imageUrl ? imageUrl.trim() : null
+    };
+
+    await workout.update(updateData);
+    
     const updatedWorkout = await Workout.findByPk(workout.id, {
       include: [
         { 
@@ -195,7 +195,10 @@ export const updateWorkout = async (req, res) => {
     res.json(updatedWorkout);
   } catch (error) {
     console.error('Error updating workout:', error);
-    res.status(500).json({ message: 'Ошибка обновления тренировки' });
+    res.status(500).json({ 
+      message: 'Ошибка обновления тренировки',
+      error: error.message 
+    });
   }
 };
 
