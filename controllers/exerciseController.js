@@ -1,6 +1,5 @@
 import { Exercise } from '../models/index.js';
 import { validationResult } from 'express-validator';
-import { Op } from 'sequelize';
 
 // Вспомогательные функции
 const extractRutubeVideoId = (url) => {
@@ -202,14 +201,20 @@ export const updateExercise = async (req, res) => {
     
     const updateData = { ...otherData };
     
+    // Обработка ссылки на Rutube
     if (rutubeFullUrl) {
       updateData.rutubeFullUrl = rutubeFullUrl;
       updateData.rutubeVideoId = extractRutubeVideoId(rutubeFullUrl);
     }
+    
+    // Обработка времени начала
     if (rutubeStartTime !== undefined) {
       updateData.rutubeStartTime = rutubeStartTime === '' ? 0 : parseInt(rutubeStartTime) || 0;
     }
+    
+    // Обработка времени окончания - критическое исправление!
     if (rutubeEndTime !== undefined) {
+      // Если пришла пустая строка или null, устанавливаем null в БД
       updateData.rutubeEndTime = (rutubeEndTime === '' || rutubeEndTime === null) 
         ? null 
         : parseInt(rutubeEndTime) || null;
