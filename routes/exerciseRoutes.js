@@ -19,10 +19,10 @@ const exerciseValidation = [
 
 // Публичные маршруты
 router.get('/', getAllExercises);
+router.get('/my', authenticate, authorize('trainer', 'admin'), getMyExercises);
 router.get('/:id', getExerciseById);
 
 // Защищенные маршруты для тренера и админа
-router.get('/my', authenticate, authorize('trainer', 'admin'), getMyExercises);
 router.post('/', authenticate, authorize('trainer', 'admin'), exerciseValidation, createExercise);
 router.put('/:id', authenticate, authorize('trainer', 'admin'), exerciseValidation, updateExercise);
 router.delete('/:id', authenticate, authorize('trainer', 'admin'), deleteExercise);
