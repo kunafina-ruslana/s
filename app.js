@@ -8,7 +8,6 @@ import exerciseRoutes from './routes/exerciseRoutes.js';
 import workoutRoutes from './routes/workoutRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
-import contactRoutes from './routes/contactRoutes.js'; 
 
 dotenv.config();
 
@@ -28,7 +27,6 @@ app.use('/api/exercises', exerciseRoutes);
 app.use('/api/workouts', workoutRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/contact', contactRoutes); 
 
 app.use((req, res) => {
   res.status(404).json({ 
