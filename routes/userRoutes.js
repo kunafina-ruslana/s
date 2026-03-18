@@ -67,6 +67,7 @@ router.put('/change-password', authenticate, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     
+    // Валидация
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ message: 'Все поля обязательны' });
     }
@@ -81,16 +82,20 @@ router.put('/change-password', authenticate, async (req, res) => {
       });
     }
     
+    // Получаем пользователя с паролем
     const user = await User.findByPk(req.user.id);
     
+    // Проверяем текущий пароль
     const isValidPassword = await user.validatePassword(currentPassword);
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Неверный текущий пароль' });
     }
     
+    // Хешируем новый пароль
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     
+    // Обновляем пароль
     await User.update(
       { password: hashedPassword },
       { where: { id: req.user.id } }
