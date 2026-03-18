@@ -41,6 +41,7 @@ router.delete('/exercises/:id', deleteExercise);
 router.post('/workouts', createWorkout);
 router.put('/workouts/:id', updateWorkout);
 router.delete('/workouts/:id', deleteWorkout);
+
 router.put('/users/:id/password', async (req, res) => {
   try {
     const { password } = req.body;
@@ -58,7 +59,7 @@ router.put('/users/:id/password', async (req, res) => {
         message: 'Пароль должен содержать буквы и цифры' 
       });
     }
-    
+
     const user = await User.findByPk(req.params.id);
     if (!user) {
       return res.status(404).json({ message: 'Пользователь не найден' });
