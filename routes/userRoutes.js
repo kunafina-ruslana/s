@@ -1,6 +1,8 @@
 import express from 'express';
 import { body } from 'express-validator';
+import bcrypt from 'bcrypt';
 import { authenticate } from '../middleware/authMiddleware.js';
+import { User } from '../models/index.js';
 import {
   getProfile,
   updateProfile,
@@ -60,5 +62,45 @@ router.post('/measurements', authenticate, addMeasurement);
 router.get('/favorites', authenticate, getFavorites);
 router.post('/favorites/:workoutId', authenticate, addFavorite);
 router.delete('/favorites/:workoutId', authenticate, removeFavorite);
+
+router.put('/change-password', authenticate, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Все поля обязательны' });
+    }
+    
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'Пароль должен содержать минимум 8 символов' });
+    }
+    
+    if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      return res.status(400).json({ 
+        message: 'Пароль должен содержать буквы и цифры' 
+      });
+    }
+    
+    const user = await User.findByPk(req.user.id);
+    
+    const isValidPassword = await user.validatePassword(currentPassword);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Неверный текущий пароль' });
+    }
+    
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    await User.update(
+      { password: hashedPassword },
+      { where: { id: req.user.id } }
+    );
+    
+    res.json({ message: 'Пароль успешно изменен' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ message: 'Ошибка при изменении пароля' });
+  }
+});
 
 export default router;
