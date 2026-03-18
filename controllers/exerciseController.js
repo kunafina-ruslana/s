@@ -1,5 +1,6 @@
 import { Exercise } from '../models/index.js';
 import { validationResult } from 'express-validator';
+import { Op } from 'sequelize';
 
 // Вспомогательные функции
 const extractRutubeVideoId = (url) => {
@@ -206,10 +207,12 @@ export const updateExercise = async (req, res) => {
       updateData.rutubeVideoId = extractRutubeVideoId(rutubeFullUrl);
     }
     if (rutubeStartTime !== undefined) {
-      updateData.rutubeStartTime = rutubeStartTime;
+      updateData.rutubeStartTime = rutubeStartTime === '' ? 0 : parseInt(rutubeStartTime) || 0;
     }
     if (rutubeEndTime !== undefined) {
-      updateData.rutubeEndTime = rutubeEndTime;
+      updateData.rutubeEndTime = (rutubeEndTime === '' || rutubeEndTime === null) 
+        ? null 
+        : parseInt(rutubeEndTime) || null;
     }
 
     await exercise.update(updateData);
@@ -228,7 +231,10 @@ export const updateExercise = async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Error updating exercise:', error);
-    res.status(500).json({ message: 'Ошибка обновления упражнения' });
+    res.status(500).json({ 
+      message: 'Ошибка обновления упражнения',
+      error: error.message 
+    });
   }
 };
 
