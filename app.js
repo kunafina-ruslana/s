@@ -20,14 +20,7 @@ const allowedOrigins = [
   'https://c-production-d50c.up.railway.app',
   'https://s-production-fd8f.up.railway.app',
   'https://s-production-975f.up.railway.app'
-],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200
-}));
-
-app.options('*', cors());
+];
 
 app.use(cors({
   origin: function(origin, callback) {
@@ -38,10 +31,12 @@ app.use(cors({
     }
     return callback(null, true);
   },
-  credentials: true,
+  credentials: true, 
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+app.options('*', cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
