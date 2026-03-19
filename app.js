@@ -17,6 +17,8 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:3000',
   'https://c-production-a07b.up.railway.app',
+  'https://c-production-d50c.up.railway.app',
+  'https://s-production-fd8f.up.railway.app',
   'https://s-production-975f.up.railway.app'
 ];
 
