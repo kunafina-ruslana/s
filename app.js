@@ -16,10 +16,8 @@ const app = express();
 // Настройка CORS
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://c-production-a07b.up.railway.app',
   'https://c-production-d50c.up.railway.app',
-  'https://s-production-fd8f.up.railway.app',
-  'https://s-production-975f.up.railway.app'
+  'https://s-production-fd8f.up.railway.app'
 ];
 
 app.use(cors({
@@ -31,12 +29,13 @@ app.use(cors({
     }
     return callback(null, true);
   },
-  credentials: true, 
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.options('*', cors());
+// Удалите или закомментируйте эту строку:
+// app.options('*', cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -58,10 +57,8 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// ВАЖНО: Правильная обработка 404 - используем middleware функцию, а не '*'
-// Этот middleware будет вызван, если ни один из предыдущих маршрутов не подошел
+// ВАЖНО: Правильная обработка 404 - используем middleware функцию
 app.use((req, res, next) => {
-  // Проверяем, начинается ли путь с /api
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ 
       message: 'API маршрут не найден',
@@ -69,7 +66,6 @@ app.use((req, res, next) => {
       method: req.method
     });
   }
-  // Для не-API запросов
   res.status(404).json({ message: 'Страница не найдена' });
 });
 
@@ -78,7 +74,6 @@ app.use((err, req, res, next) => {
   console.error('Server error:', err);
   console.error('Error stack:', err.stack);
   
-  // Проверяем, является ли ошибка CORS-related
   if (err.message && err.message.includes('CORS')) {
     return res.status(403).json({ 
       message: 'Ошибка CORS: запрос с этого домена не разрешен',
@@ -104,7 +99,7 @@ const startServer = async () => {
     
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server running on port ${PORT}`);
-      console.log(`📍 Test API: https://s-production-975f.up.railway.app/api/test`);
+      console.log(`📍 Test API: https://s-production-2907.up.railway.app/api/test`);
       console.log(`📍 CORS allowed origins:`, allowedOrigins);
     });
   } catch (error) {
