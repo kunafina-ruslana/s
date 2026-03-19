@@ -13,29 +13,36 @@ dotenv.config();
 
 const app = express();
 
-// Настройка CORS
+// Настройка CORS - максимально простая и надежная версия
 const allowedOrigins = [
   'http://localhost:3000',
   'https://c-production-d50c.up.railway.app',
-  'https://s-production-fd8f.up.railway.app'
+  'https://s-production-2907.up.railway.app'
 ];
 
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'Запросы с этого домена не разрешены политикой CORS.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// Удалите или закомментируйте эту строку:
-// app.options('*', cors());
+// Сначала обрабатываем все OPTIONS запросы
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Устанавливаем заголовки для всех запросов
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', 'https://c-production-d50c.up.railway.app');
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  
+  // Если это OPTIONS запрос - сразу отправляем ответ
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send();
+  }
+  
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -53,11 +60,15 @@ app.get('/api/test', (req, res) => {
   res.json({ 
     message: 'Server is working', 
     timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV 
+    env: process.env.NODE_ENV,
+    cors: {
+      origin: req.headers.origin,
+      method: req.method
+    }
   });
 });
 
-// ВАЖНО: Правильная обработка 404 - используем middleware функцию
+// Обработка 404
 app.use((req, res, next) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ 
@@ -73,13 +84,6 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
   console.error('Error stack:', err.stack);
-  
-  if (err.message && err.message.includes('CORS')) {
-    return res.status(403).json({ 
-      message: 'Ошибка CORS: запрос с этого домена не разрешен',
-      error: err.message 
-    });
-  }
   
   res.status(500).json({ 
     message: 'Внутренняя ошибка сервера',
