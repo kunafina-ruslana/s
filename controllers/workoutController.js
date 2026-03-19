@@ -2,7 +2,7 @@ import { Workout, Exercise, WorkoutExercise, WorkoutProgress } from '../models/i
 import { validationResult } from 'express-validator';
 import { Op } from 'sequelize';
 
-// Публичные маршруты
+// Получение всех тренировок
 export const getAllWorkouts = async (req, res) => {
   try {
     const { level, category, search } = req.query;
@@ -34,6 +34,7 @@ export const getAllWorkouts = async (req, res) => {
   }
 };
 
+// Получение тренировки по ID
 export const getWorkoutById = async (req, res) => {
   try {
     const workout = await Workout.findByPk(req.params.id, {
@@ -57,11 +58,9 @@ export const getWorkoutById = async (req, res) => {
   }
 };
 
-// Маршруты для тренера
+// Получение тренировок текущего пользователя
 export const getMyWorkouts = async (req, res) => {
   try {
-    console.log('Fetching workouts for user:', req.user.id);
-    
     const workouts = await Workout.findAll({
       where: { createdBy: req.user.id },
       include: [
@@ -75,23 +74,14 @@ export const getMyWorkouts = async (req, res) => {
       ],
       order: [['createdAt', 'DESC']]
     });
-    
-    console.log(`Found ${workouts.length} workouts`);
     res.json(workouts);
   } catch (error) {
     console.error('Error fetching my workouts:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
-    res.status(500).json({ 
-      message: 'Ошибка загрузки ваших тренировок',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    res.status(500).json({ message: 'Ошибка загрузки ваших тренировок' });
   }
 };
 
+// Создание тренировки
 export const createWorkout = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -143,6 +133,7 @@ export const createWorkout = async (req, res) => {
   }
 };
 
+// Обновление тренировки
 export const updateWorkout = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -165,17 +156,13 @@ export const updateWorkout = async (req, res) => {
 
     const { name, description, duration, level, category, imageUrl } = req.body;
     
-    if (!name || !description || !duration) {
-      return res.status(400).json({ message: 'Обязательные поля не заполнены' });
-    }
-
     const updateData = {
-      name: name.trim(),
-      description: description.trim(),
-      duration: parseInt(duration),
+      name: name?.trim(),
+      description: description?.trim(),
+      duration: duration ? parseInt(duration) : null,
       level: level || 'beginner',
-      category: category ? category.trim() : null,
-      imageUrl: imageUrl ? imageUrl.trim() : null
+      category: category?.trim() || null,
+      imageUrl: imageUrl?.trim() || null
     };
 
     await workout.update(updateData);
@@ -195,34 +182,53 @@ export const updateWorkout = async (req, res) => {
     res.json(updatedWorkout);
   } catch (error) {
     console.error('Error updating workout:', error);
+    res.status(500).json({ message: 'Ошибка обновления тренировки' });
+  }
+};
+
+// УДАЛЕНИЕ ТРЕНИРОВКИ (только одна эта функция!)
+export const deleteWorkout = async (req, res) => {
+  try {
+    console.log('Attempting to delete workout:', req.params.id);
+    console.log('User:', req.user.id, req.user.role);
+    
+    const workout = await Workout.findByPk(req.params.id);
+    
+    if (!workout) {
+      console.log('Workout not found:', req.params.id);
+      return res.status(404).json({ message: 'Тренировка не найдена' });
+    }
+
+    if (req.user.role !== 'admin' && workout.createdBy !== req.user.id) {
+      console.log('Access denied. User:', req.user.id, 'Creator:', workout.createdBy);
+      return res.status(403).json({ message: 'Доступ запрещен' });
+    }
+
+    // Удаляем связанные записи в WorkoutExercises
+    console.log('Deleting related exercises...');
+    await WorkoutExercise.destroy({ where: { workoutId: workout.id } });
+    
+    // Удаляем саму тренировку
+    console.log('Deleting workout...');
+    await workout.destroy();
+    
+    console.log('Workout deleted successfully:', req.params.id);
+    res.json({ message: 'Тренировка успешно удалена' });
+  } catch (error) {
+    console.error('Error deleting workout:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({ 
-      message: 'Ошибка обновления тренировки',
+      message: 'Ошибка при удалении тренировки',
       error: error.message 
     });
   }
 };
 
-export const deleteWorkout = async (req, res) => {
-  try {
-    const workout = await Workout.findByPk(req.params.id);
-    
-    if (!workout) {
-      return res.status(404).json({ message: 'Тренировка не найдена' });
-    }
-
-    if (req.user.role !== 'admin' && workout.createdBy !== req.user.id) {
-      return res.status(403).json({ message: 'Доступ запрещен' });
-    }
-
-    await WorkoutExercise.destroy({ where: { workoutId: workout.id } });
-    await workout.destroy();
-    res.json({ message: 'Тренировка удалена' });
-  } catch (error) {
-    console.error('Error deleting workout:', error);
-    res.status(500).json({ message: 'Ошибка удаления тренировки' });
-  }
-};
-
+// Начало тренировки
 export const startWorkout = async (req, res) => {
   try {
     const progress = await WorkoutProgress.create({
@@ -237,6 +243,7 @@ export const startWorkout = async (req, res) => {
   }
 };
 
+// Завершение тренировки
 export const completeWorkout = async (req, res) => {
   try {
     const { duration, caloriesBurned } = req.body;
@@ -269,45 +276,3 @@ export const completeWorkout = async (req, res) => {
     res.status(500).json({ message: 'Ошибка завершения тренировки' });
   }
 };
-export const deleteWorkout = async (req, res) => {
-  try {
-    console.log('Attempting to delete workout:', req.params.id);
-    console.log('User:', req.user.id, req.user.role);
-    
-    const workout = await Workout.findByPk(req.params.id);
-    
-    if (!workout) {
-      console.log('Workout not found:', req.params.id);
-      return res.status(404).json({ message: 'Тренировка не найдена' });
-    }
-
-    // Проверка прав доступа
-    if (req.user.role !== 'admin' && workout.createdBy !== req.user.id) {
-      console.log('Access denied. User:', req.user.id, 'Creator:', workout.createdBy);
-      return res.status(403).json({ message: 'Доступ запрещен' });
-    }
-
-    // Удаляем связанные записи в WorkoutExercises
-    console.log('Deleting related exercises...');
-    await WorkoutExercise.destroy({ where: { workoutId: workout.id } });
-    
-    // Удаляем саму тренировку
-    console.log('Deleting workout...');
-    await workout.destroy();
-    
-    console.log('Workout deleted successfully:', req.params.id);
-    res.json({ message: 'Тренировка успешно удалена' });
-  } catch (error) {
-    console.error('Error deleting workout:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
-    res.status(500).json({ 
-      message: 'Ошибка при удалении тренировки',
-      error: error.message 
-    });
-  }
-};
-
