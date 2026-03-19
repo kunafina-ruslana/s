@@ -37,13 +37,12 @@ Workout.hasMany(FavoriteWorkout, { foreignKey: 'workoutId' });
 Workout.belongsToMany(Exercise, { 
   through: WorkoutExercise, 
   foreignKey: 'workoutId',
-  as: 'exercises'
+  as: 'exercises',
+  onDelete: 'CASCADE'  // Важно!
 });
-Exercise.belongsToMany(Workout, { 
-  through: WorkoutExercise, 
-  foreignKey: 'exerciseId',
-  as: 'workouts'
-});
+
+WorkoutExercise.belongsTo(Workout, { foreignKey: 'workoutId' });
+Workout.hasMany(WorkoutExercise, { foreignKey: 'workoutId' });
 
 WorkoutExercise.belongsTo(Workout, { foreignKey: 'workoutId' });
 WorkoutExercise.belongsTo(Exercise, { foreignKey: 'exerciseId' });
