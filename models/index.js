@@ -7,53 +7,114 @@ import FavoriteWorkout from './FavoriteWorkout.js';
 import WorkoutProgress from './WorkoutProgress.js';
 import BodyMeasurement from './BodyMeasurement.js';
 
-// Связи пользователя
-User.hasMany(Review, { foreignKey: 'userId' });
-Review.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(Review, { 
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
+Review.belongsTo(User, { 
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
 
-User.hasMany(WorkoutProgress, { foreignKey: 'userId' });
-WorkoutProgress.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(WorkoutProgress, { 
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
+WorkoutProgress.belongsTo(User, { 
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
 
-User.hasMany(BodyMeasurement, { foreignKey: 'userId' });
-BodyMeasurement.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(BodyMeasurement, { 
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
+BodyMeasurement.belongsTo(User, { 
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
 
-// Связи избранного
 User.belongsToMany(Workout, { 
   through: FavoriteWorkout, 
   foreignKey: 'userId',
-  as: 'favoriteWorkouts'
+  as: 'favoriteWorkouts',
+  onDelete: 'CASCADE'
 });
 Workout.belongsToMany(User, { 
   through: FavoriteWorkout, 
   foreignKey: 'workoutId',
-  as: 'favoritedBy'
+  as: 'favoritedBy',
+  onDelete: 'CASCADE'
 });
 
-FavoriteWorkout.belongsTo(User, { foreignKey: 'userId' });
-FavoriteWorkout.belongsTo(Workout, { foreignKey: 'workoutId' });
-User.hasMany(FavoriteWorkout, { foreignKey: 'userId' });
-Workout.hasMany(FavoriteWorkout, { foreignKey: 'workoutId' });
+FavoriteWorkout.belongsTo(User, { 
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
+FavoriteWorkout.belongsTo(Workout, { 
+  foreignKey: 'workoutId',
+  onDelete: 'CASCADE'
+});
+User.hasMany(FavoriteWorkout, { 
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
+Workout.hasMany(FavoriteWorkout, { 
+  foreignKey: 'workoutId',
+  onDelete: 'CASCADE'
+});
 
 Workout.belongsToMany(Exercise, { 
   through: WorkoutExercise, 
   foreignKey: 'workoutId',
   as: 'exercises',
-  onDelete: 'CASCADE'  // Важно!
+  onDelete: 'CASCADE'
+});
+Exercise.belongsToMany(Workout, { 
+  through: WorkoutExercise, 
+  foreignKey: 'exerciseId',
+  as: 'workouts',
+  onDelete: 'CASCADE'
 });
 
-WorkoutExercise.belongsTo(Workout, { foreignKey: 'workoutId' });
-Workout.hasMany(WorkoutExercise, { foreignKey: 'workoutId' });
+WorkoutExercise.belongsTo(Workout, { 
+  foreignKey: 'workoutId',
+  onDelete: 'CASCADE'
+});
+WorkoutExercise.belongsTo(Exercise, { 
+  foreignKey: 'exerciseId',
+  onDelete: 'CASCADE'
+});
+Workout.hasMany(WorkoutExercise, { 
+  foreignKey: 'workoutId',
+  onDelete: 'CASCADE'
+});
+Exercise.hasMany(WorkoutExercise, { 
+  foreignKey: 'exerciseId',
+  onDelete: 'CASCADE'
+});
 
-WorkoutExercise.belongsTo(Workout, { foreignKey: 'workoutId' });
-WorkoutExercise.belongsTo(Exercise, { foreignKey: 'exerciseId' });
-Workout.hasMany(WorkoutExercise, { foreignKey: 'workoutId' });
-Exercise.hasMany(WorkoutExercise, { foreignKey: 'exerciseId' });
+Workout.belongsTo(User, { 
+  as: 'creator', 
+  foreignKey: 'createdBy',
+  onDelete: 'SET NULL'
+});
 
-Workout.belongsTo(User, { as: 'creator', foreignKey: 'createdBy' });
-Exercise.belongsTo(User, { as: 'creator', foreignKey: 'createdBy' });
+Exercise.belongsTo(User, { 
+  as: 'creator', 
+  foreignKey: 'createdBy',
+  onDelete: 'SET NULL'
+});
 
-WorkoutProgress.belongsTo(Workout, { foreignKey: 'workoutId' });
-Workout.hasMany(WorkoutProgress, { foreignKey: 'workoutId' });
+WorkoutProgress.belongsTo(Workout, { 
+  foreignKey: 'workoutId',
+  onDelete: 'CASCADE'
+});
+
+Workout.hasMany(WorkoutProgress, { 
+  foreignKey: 'workoutId',
+  onDelete: 'CASCADE'
+});
 
 export {
   User,
