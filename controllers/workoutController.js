@@ -136,14 +136,6 @@ export const createWorkout = async (req, res) => {
 // Обновление тренировки
 export const updateWorkout = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Ошибка валидации', 
-        errors: errors.array() 
-      });
-    }
-
     const workout = await Workout.findByPk(req.params.id);
     
     if (!workout) {
@@ -154,19 +146,48 @@ export const updateWorkout = async (req, res) => {
       return res.status(403).json({ message: 'Доступ запрещен' });
     }
 
-    const { name, description, duration, level, category, imageUrl } = req.body;
+    const { name, description, duration, level, category, imageUrl, exercises } = req.body;
     
+    // Проверка обязательных полей
+    if (!name || !description || !duration) {
+      return res.status(400).json({ 
+        message: 'Обязательные поля не заполнены',
+        errors: {
+          name: !name ? 'Название обязательно' : null,
+          description: !description ? 'Описание обязательно' : null,
+          duration: !duration ? 'Длительность обязательна' : null
+        }
+      });
+    }
+
+    // Обновление основных полей
     const updateData = {
-      name: name?.trim(),
-      description: description?.trim(),
-      duration: duration ? parseInt(duration) : null,
+      name: name.trim(),
+      description: description.trim(),
+      duration: parseInt(duration),
       level: level || 'beginner',
-      category: category?.trim() || null,
-      imageUrl: imageUrl?.trim() || null
+      category: category || null,
+      imageUrl: imageUrl || null
     };
 
     await workout.update(updateData);
-    
+
+    // Обновление упражнений, если они переданы
+    if (exercises && exercises.length > 0) {
+      await WorkoutExercise.destroy({ where: { workoutId: workout.id } });
+      
+      const workoutExercises = exercises.map((ex, index) => ({
+        workoutId: workout.id,
+        exerciseId: ex.exerciseId,
+        sets: ex.sets || 3,
+        reps: ex.reps || 10,
+        restTime: ex.restTime || 30,
+        order: index
+      }));
+      
+      await WorkoutExercise.bulkCreate(workoutExercises);
+    }
+
     const updatedWorkout = await Workout.findByPk(workout.id, {
       include: [
         { 
@@ -182,7 +203,10 @@ export const updateWorkout = async (req, res) => {
     res.json(updatedWorkout);
   } catch (error) {
     console.error('Error updating workout:', error);
-    res.status(500).json({ message: 'Ошибка обновления тренировки' });
+    res.status(500).json({ 
+      message: 'Ошибка обновления тренировки',
+      error: error.message 
+    });
   }
 };
 
