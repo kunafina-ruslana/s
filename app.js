@@ -1,4 +1,3 @@
-// server.js
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -14,34 +13,26 @@ dotenv.config();
 
 const app = express();
 
-// Настройка CORS - разрешаем запросы с вашего клиентского домена
+// Настройка CORS
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://c-production-a07b.up.railway.app', // Ваш клиентский домен
-  'https://s-production-2907.up.railway.app'  // Серверный домен (на всякий случай)
+  'https://c-production-a07b.up.railway.app',
+  'https://s-production-975f.up.railway.app'
 ];
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Разрешаем запросы без origin (например, мобильные приложения)
     if (!origin) return callback(null, true);
-    
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'Запросы с этого домена не разрешены политикой CORS.';
       return callback(new Error(msg), false);
     }
     return callback(null, true);
   },
-  credentials: true, // Разрешаем отправку куки и заголовков авторизации
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
-// Для простоты можно использовать более простую настройку (не для продакшена)
-// app.use(cors({
-//   origin: '*',
-//   credentials: true
-// }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -56,11 +47,17 @@ app.use('/api/admin', adminRoutes);
 
 // Тестовый маршрут
 app.get('/api/test', (req, res) => {
-  res.json({ message: 'Server is working', timestamp: new Date().toISOString() });
+  res.json({ 
+    message: 'Server is working', 
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV 
+  });
 });
 
-// Обработка 404 для API маршрутов
-app.use('/api/*', (req, res) => {
+// ВАЖНО: Исправление для обработки 404
+// Не используйте '/api/*' - это неправильный синтаксис!
+// Правильный способ 1: обрабатывать все несуществующие API маршруты
+app.use('/api', (req, res) => {
   res.status(404).json({ 
     message: 'API маршрут не найден',
     path: req.originalUrl,
@@ -68,9 +65,33 @@ app.use('/api/*', (req, res) => {
   });
 });
 
+// Правильный способ 2: обрабатывать все несуществующие маршруты
+app.use('*', (req, res) => {
+  // Если запрос начинается с /api, возвращаем JSON
+  if (req.originalUrl.startsWith('/api')) {
+    return res.status(404).json({ 
+      message: 'API маршрут не найден',
+      path: req.originalUrl,
+      method: req.method
+    });
+  }
+  // Для остальных запросов можно вернуть HTML или JSON
+  res.status(404).json({ message: 'Страница не найдена' });
+});
+
 // Обработка ошибок
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
+  console.error('Error stack:', err.stack);
+  
+  // Проверяем, является ли ошибка CORS-related
+  if (err.message.includes('CORS')) {
+    return res.status(403).json({ 
+      message: 'Ошибка CORS: запрос с этого домена не разрешен',
+      error: err.message 
+    });
+  }
+  
   res.status(500).json({ 
     message: 'Внутренняя ошибка сервера',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
@@ -87,9 +108,9 @@ const startServer = async () => {
     await sequelize.sync({ alter: true });
     console.log('✅ Database synced');
     
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server running on port ${PORT}`);
-      console.log(`📍 Test API: http://localhost:${PORT}/api/test`);
+      console.log(`📍 Test API: https://s-production-975f.up.railway.app/api/test`);
       console.log(`📍 CORS allowed origins:`, allowedOrigins);
     });
   } catch (error) {
