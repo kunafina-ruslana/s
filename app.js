@@ -13,31 +13,42 @@ dotenv.config();
 
 const app = express();
 
-// Настройка CORS - максимально простая и надежная версия
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://c-production-d50c.up.railway.app',
-  'https://s-production-2907.up.railway.app'
-];
+// Логируем все входящие запросы
+app.use((req, res, next) => {
+  console.log('=== ВХОДЯЩИЙ ЗАПРОС ===');
+  console.log('Метод:', req.method);
+  console.log('URL:', req.url);
+  console.log('Origin:', req.headers.origin);
+  console.log('Host:', req.headers.host);
+  console.log('User-Agent:', req.headers['user-agent']);
+  console.log('========================');
+  next();
+});
 
-// Сначала обрабатываем все OPTIONS запросы
+// Самая простая настройка CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
-  // Устанавливаем заголовки для всех запросов
+  // Разрешаем конкретные origins
+  const allowedOrigins = [
+    'https://c-production-d50c.up.railway.app',
+    'http://localhost:3000'
+  ];
+  
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', 'https://c-production-d50c.up.railway.app');
+  } else if (!origin) {
+    // Если нет origin (например, запрос с сервера), разрешаем
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
   
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Max-Age', '86400');
   
-  // Если это OPTIONS запрос - сразу отправляем ответ
+  // Если это preflight запрос
   if (req.method === 'OPTIONS') {
+    console.log('⚠️ OPTIONS запрос обработан');
     return res.status(204).send();
   }
   
@@ -47,6 +58,19 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Тестовый маршрут (должен быть ДО других маршрутов)
+app.get('/api/test', (req, res) => {
+  console.log('✅ Тестовый маршрут вызван');
+  res.json({ 
+    message: 'Server is working', 
+    timestamp: new Date().toISOString(),
+    headers: {
+      origin: req.headers.origin,
+      host: req.headers.host
+    }
+  });
+});
+
 // Маршруты API
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -55,21 +79,9 @@ app.use('/api/workouts', workoutRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Тестовый маршрут
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    message: 'Server is working', 
-    timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV,
-    cors: {
-      origin: req.headers.origin,
-      method: req.method
-    }
-  });
-});
-
 // Обработка 404
 app.use((req, res, next) => {
+  console.log('❌ Маршрут не найден:', req.method, req.url);
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ 
       message: 'API маршрут не найден',
@@ -82,8 +94,8 @@ app.use((req, res, next) => {
 
 // Обработка ошибок
 app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  console.error('Error stack:', err.stack);
+  console.error('❌ Серверная ошибка:', err);
+  console.error('Stack:', err.stack);
   
   res.status(500).json({ 
     message: 'Внутренняя ошибка сервера',
@@ -104,7 +116,6 @@ const startServer = async () => {
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server running on port ${PORT}`);
       console.log(`📍 Test API: https://s-production-2907.up.railway.app/api/test`);
-      console.log(`📍 CORS allowed origins:`, allowedOrigins);
     });
   } catch (error) {
     console.error('❌ Unable to start server:', error);
