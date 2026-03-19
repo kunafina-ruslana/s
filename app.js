@@ -13,40 +13,33 @@ dotenv.config();
 
 const app = express();
 
-// Логируем все входящие запросы
-app.use((req, res, next) => {
-  console.log('=== ВХОДЯЩИЙ ЗАПРОС ===');
-  console.log('Метод:', req.method);
-  console.log('URL:', req.url);
-  console.log('Origin:', req.headers.origin);
-  console.log('Host:', req.headers.host);
-  console.log('User-Agent:', req.headers['user-agent']);
-  console.log('========================');
-  next();
-});
-
-// Самая простая настройка CORS
+// Максимально простая настройка CORS - для всех запросов
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
   // Разрешаем конкретные origins
   const allowedOrigins = [
+    'https://s-production-fd8f.up.railway.app',
     'https://c-production-d50c.up.railway.app',
     'http://localhost:3000'
   ];
   
+  // Устанавливаем CORS заголовки для ВСЕХ запросов
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (!origin) {
-    // Если нет origin (например, запрос с сервера), разрешаем
-    res.setHeader('Access-Control-Allow-Origin', '*');
+  } else if (origin && origin.includes('railway.app')) {
+    // Разрешаем все railway.app домены
+    res.setHeader('Access-Control-Allow-Origin', origin);
   }
   
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   
-  // Если это preflight запрос
+  // Логируем каждый запрос
+  console.log(`${req.method} ${req.url} - Origin: ${req.headers.origin || 'нет'}`);
+  
+  // НЕМЕДЛЕННО отвечаем на OPTIONS запросы
   if (req.method === 'OPTIONS') {
     console.log('⚠️ OPTIONS запрос обработан');
     return res.status(204).send();
@@ -58,16 +51,13 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Тестовый маршрут (должен быть ДО других маршрутов)
+// Тестовый маршрут
 app.get('/api/test', (req, res) => {
-  console.log('✅ Тестовый маршрут вызван');
+  console.log('✅ Тестовый маршрут');
   res.json({ 
     message: 'Server is working', 
     timestamp: new Date().toISOString(),
-    headers: {
-      origin: req.headers.origin,
-      host: req.headers.host
-    }
+    port: process.env.PORT || 8080
   });
 });
 
@@ -80,45 +70,33 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Обработка 404
-app.use((req, res, next) => {
-  console.log('❌ Маршрут не найден:', req.method, req.url);
-  if (req.path.startsWith('/api')) {
-    return res.status(404).json({ 
-      message: 'API маршрут не найден',
-      path: req.originalUrl,
-      method: req.method
-    });
-  }
-  res.status(404).json({ message: 'Страница не найдена' });
+app.use((req, res) => {
+  console.log('❌ 404:', req.method, req.url);
+  res.status(404).json({ message: 'Маршрут не найден' });
 });
 
 // Обработка ошибок
 app.use((err, req, res, next) => {
-  console.error('❌ Серверная ошибка:', err);
-  console.error('Stack:', err.stack);
-  
-  res.status(500).json({ 
-    message: 'Внутренняя ошибка сервера',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
+  console.error('❌ Ошибка:', err);
+  res.status(500).json({ message: 'Внутренняя ошибка сервера' });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 const startServer = async () => {
   try {
     await sequelize.authenticate();
-    console.log('✅ PostgreSQL database connected successfully');
+    console.log('✅ PostgreSQL connected');
     
     await sequelize.sync({ alter: true });
     console.log('✅ Database synced');
     
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server running on port ${PORT}`);
-      console.log(`📍 Test API: https://s-production-2907.up.railway.app/api/test`);
+      console.log(`📍 Test: https://s-production-2907.up.railway.app/api/test`);
     });
   } catch (error) {
-    console.error('❌ Unable to start server:', error);
+    console.error('❌ Failed to start:', error);
     process.exit(1);
   }
 };
