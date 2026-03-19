@@ -13,31 +13,36 @@ dotenv.config();
 
 const app = express();
 
-// Максимально простая настройка CORS - для всех запросов
+// Исправленная CORS middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
-  // Разрешаем конкретные origins
-  const allowedOrigins = [
-    'https://s-production-fd8f.up.railway.app',
-    'https://c-production-d50c.up.railway.app',
-    'http://localhost:3000'
-  ];
-  
-  // Устанавливаем CORS заголовки для ВСЕХ запросов
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (origin && origin.includes('railway.app')) {
-    // Разрешаем все railway.app домены
-    res.setHeader('Access-Control-Allow-Origin', origin);
+  // ВАЖНО: Всегда устанавливаем заголовки, даже если origin отсутствует
+  if (origin) {
+    // Разрешаем конкретные origins
+    const allowedOrigins = [
+      'https://c-production-d50c.up.railway.app',
+      'http://localhost:3000'
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else if (origin.includes('railway.app')) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+  } else {
+    // Если origin отсутствует (как в вашем случае), устанавливаем дефолтный
+    // Это критически важно для продакшена!
+    res.setHeader('Access-Control-Allow-Origin', 'https://c-production-d50c.up.railway.app');
   }
   
+  // Всегда устанавливаем остальные заголовки
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   
   // Логируем каждый запрос
-  console.log(`${req.method} ${req.url} - Origin: ${req.headers.origin || 'нет'}`);
+  console.log(`${req.method} ${req.url} - Origin: ${req.headers.origin || 'нет'} - Set ACAO: ${res.getHeader('Access-Control-Allow-Origin')}`);
   
   // НЕМЕДЛЕННО отвечаем на OPTIONS запросы
   if (req.method === 'OPTIONS') {
@@ -57,7 +62,8 @@ app.get('/api/test', (req, res) => {
   res.json({ 
     message: 'Server is working', 
     timestamp: new Date().toISOString(),
-    port: process.env.PORT || 8080
+    port: process.env.PORT || 8080,
+    origin: req.headers.origin || 'нет'
   });
 });
 
