@@ -204,16 +204,32 @@ export const deleteWorkout = async (req, res) => {
       return res.status(403).json({ message: 'Доступ запрещен' });
     }
 
-    // Удаляем связанные записи в WorkoutExercises
+    // ВАЖНО: Сначала удаляем все связанные записи в WorkoutProgress
+    console.log('Deleting related progress records...');
+    const deletedProgress = await WorkoutProgress.destroy({ 
+      where: { workoutId: workout.id } 
+    });
+    console.log(`Deleted ${deletedProgress} progress records`);
+
+    // Затем удаляем связанные записи в WorkoutExercises
     console.log('Deleting related exercises...');
-    await WorkoutExercise.destroy({ where: { workoutId: workout.id } });
-    
-    // Удаляем саму тренировку
+    const deletedExercises = await WorkoutExercise.destroy({ 
+      where: { workoutId: workout.id } 
+    });
+    console.log(`Deleted ${deletedExercises} exercise relations`);
+
+    // Теперь можно удалить саму тренировку
     console.log('Deleting workout...');
     await workout.destroy();
     
     console.log('Workout deleted successfully:', req.params.id);
-    res.json({ message: 'Тренировка успешно удалена' });
+    res.json({ 
+      message: 'Тренировка успешно удалена',
+      deleted: {
+        progress: deletedProgress,
+        exercises: deletedExercises
+      }
+    });
   } catch (error) {
     console.error('Error deleting workout:', error);
     console.error('Error details:', {
