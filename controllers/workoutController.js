@@ -269,3 +269,45 @@ export const completeWorkout = async (req, res) => {
     res.status(500).json({ message: 'Ошибка завершения тренировки' });
   }
 };
+export const deleteWorkout = async (req, res) => {
+  try {
+    console.log('Attempting to delete workout:', req.params.id);
+    console.log('User:', req.user.id, req.user.role);
+    
+    const workout = await Workout.findByPk(req.params.id);
+    
+    if (!workout) {
+      console.log('Workout not found:', req.params.id);
+      return res.status(404).json({ message: 'Тренировка не найдена' });
+    }
+
+    // Проверка прав доступа
+    if (req.user.role !== 'admin' && workout.createdBy !== req.user.id) {
+      console.log('Access denied. User:', req.user.id, 'Creator:', workout.createdBy);
+      return res.status(403).json({ message: 'Доступ запрещен' });
+    }
+
+    // Удаляем связанные записи в WorkoutExercises
+    console.log('Deleting related exercises...');
+    await WorkoutExercise.destroy({ where: { workoutId: workout.id } });
+    
+    // Удаляем саму тренировку
+    console.log('Deleting workout...');
+    await workout.destroy();
+    
+    console.log('Workout deleted successfully:', req.params.id);
+    res.json({ message: 'Тренировка успешно удалена' });
+  } catch (error) {
+    console.error('Error deleting workout:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    res.status(500).json({ 
+      message: 'Ошибка при удалении тренировки',
+      error: error.message 
+    });
+  }
+};
+
