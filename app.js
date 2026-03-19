@@ -54,28 +54,18 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// ВАЖНО: Исправление для обработки 404
-// Не используйте '/api/*' - это неправильный синтаксис!
-// Правильный способ 1: обрабатывать все несуществующие API маршруты
-app.use('/api', (req, res) => {
-  res.status(404).json({ 
-    message: 'API маршрут не найден',
-    path: req.originalUrl,
-    method: req.method
-  });
-});
-
-// Правильный способ 2: обрабатывать все несуществующие маршруты
-app.use('*', (req, res) => {
-  // Если запрос начинается с /api, возвращаем JSON
-  if (req.originalUrl.startsWith('/api')) {
+// ВАЖНО: Правильная обработка 404 - используем middleware функцию, а не '*'
+// Этот middleware будет вызван, если ни один из предыдущих маршрутов не подошел
+app.use((req, res, next) => {
+  // Проверяем, начинается ли путь с /api
+  if (req.path.startsWith('/api')) {
     return res.status(404).json({ 
       message: 'API маршрут не найден',
       path: req.originalUrl,
       method: req.method
     });
   }
-  // Для остальных запросов можно вернуть HTML или JSON
+  // Для не-API запросов
   res.status(404).json({ message: 'Страница не найдена' });
 });
 
@@ -85,7 +75,7 @@ app.use((err, req, res, next) => {
   console.error('Error stack:', err.stack);
   
   // Проверяем, является ли ошибка CORS-related
-  if (err.message.includes('CORS')) {
+  if (err.message && err.message.includes('CORS')) {
     return res.status(403).json({ 
       message: 'Ошибка CORS: запрос с этого домена не разрешен',
       error: err.message 
